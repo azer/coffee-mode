@@ -251,15 +251,12 @@ with CoffeeScript."
   (pop-to-buffer "*CoffeeREPL*"))
 
 (defun coffee-compiled-file-name (&optional filename)
-  (let ((working-on-file (expand-file-name (or filename (buffer-file-name)))))
-    (unless (string= coffee-js-directory "")
-      (setq working-on-file
-            (expand-file-name (concat (file-name-directory working-on-file)
-                                      coffee-js-directory
-                                      (file-name-nondirectory working-on-file)))))
-    ;; Returns the name of the JavaScript file compiled from a CoffeeScript file.
-    ;; If FILENAME is omitted, the current buffer's file name is used.
-    (concat (file-name-sans-extension working-on-file) ".js")))
+  (setq working-on-file (expand-file-name (or filename (buffer-file-name))))
+  (unless (string= coffee-js-directory "")
+      (setq working-on-file (expand-file-name (concat (file-name-directory working-on-file) coffee-js-directory (file-name-nondirectory working-on-file)))))
+  "Returns the name of the JavaScript file compiled from a CoffeeScript file.
+If FILENAME is omitted, the current buffer's file name is used."
+  (concat (file-name-sans-extension working-on-file) ".js"))
 
 (defun coffee-compile-file ()
   "Compiles and saves the current file to disk in a file of the same
@@ -803,42 +800,6 @@ END lie."
 ;; Define Major Mode
 ;;
 
-(defun coffee-block-comment-delimiter (match)
-  (progn
-    (goto-char match)
-    (beginning-of-line)
-    (add-text-properties (point) (+ (point) 1) `(syntax-table (14 . nil)))))
-
-;; support coffescript block comments
-;; examples:
-;;   at indent level 0
-;;   ###
-;;        foobar
-;;   ###
-;;   at indent level 0 with text following it
-;;   ### foobar
-;;     moretext
-;;   ###
-;;   at indent level > 0
-;;     ###
-;;       foobar
-;;     ###
-;; examples of non-block comments:
-;;   #### foobar
-(defun coffee-propertize-function (start end)
-  ;; return if we don't have anything to parse
-  (unless (>= start end)
-    (save-excursion
-      (progn
-        (goto-char start)
-        (let ((match (re-search-forward "^[[:space:]]*###\\([[:space:]]+.*\\)?$" end t)))
-          (if match
-              (progn
-                (coffee-block-comment-delimiter match)
-                (goto-char match)
-                (forward-line)
-                (coffee-propertize-function (point) end))))))))
-
 ;;;###autoload
 (define-derived-mode coffee-mode fundamental-mode
   "Coffee"
@@ -873,11 +834,15 @@ END lie."
   (make-local-variable 'indent-line-function)
   (setq indent-line-function 'coffee-indent-line)
   (set (make-local-variable 'tab-width) coffee-tab-width)
-  (set (make-local-variable 'syntax-propertize-function) 'coffee-propertize-function)
+
+
+  (setq coffee-imenu-generic-expression
+        '(("Classes"     "^class \\(\\w+\\)" 1)
+          ("Assignments" "^\\([[:alnum:].:$]+\\)\s*=" 1)))
 
   ;; imenu
-  (make-local-variable 'imenu-create-index-function)
-  (setq imenu-create-index-function 'coffee-imenu-create-index)
+  ;;(make-local-variable 'imenu-create-index-function)
+  ;;(setq imenu-create-index-function 'coffee-imenu-create-index)
 
   ;; no tabs
   (setq indent-tabs-mode nil))
@@ -909,9 +874,9 @@ it on by default."
 
 ;; Run coffee-mode for files ending in .coffee.
 ;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.coffee\\'" . coffee-mode))
+(add-to-list 'auto-mode-alist '("\\.coffee$" . coffee-mode))
 ;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.iced\\'" . coffee-mode))
+(add-to-list 'auto-mode-alist '("\\.iced$" . coffee-mode))
 ;;;###autoload
-(add-to-list 'auto-mode-alist '("Cakefile\\'" . coffee-mode))
+(add-to-list 'auto-mode-alist '("Cakefile" . coffee-mode))
 ;;; coffee-mode.el ends here
